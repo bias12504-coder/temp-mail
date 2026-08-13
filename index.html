@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Temp Mail</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:linear-gradient(135deg,#fce4ec,#e8eaf6);color:#222}
+main{max-width:760px;margin:auto;padding:18px}.card{background:white;border-radius:22px;padding:20px;box-shadow:0 10px 30px #0002}
+h1{text-align:center}.email{display:flex;gap:8px}.email input{flex:1}
+input,button{padding:13px;border-radius:12px;border:1px solid #ccc;font-size:16px}
+button{cursor:pointer;background:#7c4dff;color:white;border:0;font-weight:bold}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+#inbox{margin-top:18px}.msg{border:1px solid #ddd;border-radius:14px;padding:13px;margin:10px 0;cursor:pointer}
+.msg small{color:#777}.body{white-space:pre-wrap;margin-top:12px;border-top:1px solid #ddd;padding-top:12px}
+.notice{color:#666;text-align:center}.danger{background:#c62828}
+</style>
+</head>
+<body>
+<main><div class="card">
+<h1>📧 Temp Mail</h1>
+<p class="notice">Crie uma caixa temporária e receba mensagens nela.</p>
+<div class="email">
+<input id="address" readonly placeholder="Clique em criar">
+<button onclick="copyAddress()">Copiar</button>
+</div>
+<div class="actions">
+<button onclick="createBox()">✨ Criar e-mail</button>
+<button onclick="refresh()">🔄 Atualizar</button>
+<button class="danger" onclick="deleteBox()">🗑️ Excluir</button>
+</div>
+<p id="status" class="notice"></p>
+<div id="inbox"></div>
+</div></main>
+<script>
+let box=null, timer=null;
+function save(){localStorage.setItem("tempbox",JSON.stringify(box))}
+function load(){try{box=JSON.parse(localStorage.getItem("tempbox")||"null")}catch{box=null}}
+async function createBox(){
+ const r=await fetch("/api/inboxes",{method:"POST"});
+ const j=await r.json(); if(!r.ok)return alert(j.error||"Erro");
+ box=j; save(); document.getElementById("address").value=j.address;
+ refresh(); start();
+}
+async function refresh(){
+ if(!box)return;
+ const r=await fetch(`/api/inboxes/${box.id}?token=${encodeURIComponent(box.token)}`);
+ if(!r.ok){box=null;localStorage.removeItem("tempbox");return renderEmpty()}
+ const j=await r.json();
+ document.getElementById("address").value=j.address;
+ const exp=new Date(j.expiresAt).toLocaleString();
+ document.getElementById("status").textContent=`Expira em ${exp}`;
+ const el=document.getElementById("inbox");
+ if(!j.messages.length){el.innerHTML='<p class="notice">📭 Nenhuma mensagem ainda.</p>';return}
+ el.innerHTML=j.messages.map(m=>`
+ <div class="msg" onclick="this.querySelector('.body').hidden=!this.querySelector('.body').hidden">
+ <b>${esc(m.subject)}</b><br><small>${esc(m.from||m.sender)} · ${new Date(m.receivedAt).toLocaleString()}</small>
+ <div class="body" hidden>${esc(m.bodyPlain||"(sem texto)")}</div>
+ </div>`).join("");
+}
+async function deleteBox(){
+ if(!box)return;
+ await fetch(`/api/inboxes/${box.id}?token=${encodeURIComponent(box.token)}`,{method:"DELETE"});
+ box=null;localStorage.removeItem("tempbox");clearInterval(timer);renderEmpty();
+}
+async function copyAddress(){if(!box)return;await navigator.clipboard.writeText(box.address);alert("Endereço copiado!")}
+function renderEmpty(){document.getElementById("address").value="";document.getElementById("status").textContent="Crie um novo endereço.";document.getElementById("inbox").innerHTML=""}
+function start(){clearInterval(timer);timer=setInterval(refresh,5000)}
+function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+load(); if(box){document.getElementById("address").value=box.address;refresh();start()} else renderEmpty();
+</script>
+</body>
+</html>
