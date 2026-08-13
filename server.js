@@ -150,6 +150,28 @@ app.post("/webhooks/mailgun", (req, res) => {
   save();
   res.sendStatus(200);
 });
+// Rota de teste para celular: cria uma mensagem fictícia na caixa de entrada
+app.get("/api/test-email/:address", (req, res) => {
+  const address = req.params.address.toLowerCase();
+  const box = Object.values(db.inboxes).find(b => b.address === address);
+  
+  if (!box) {
+    return res.status(404).json({ error: "Caixa de entrada não encontrada!" });
+  }
+
+  const testMessage = {
+    id: crypto.randomBytes(8).toString("hex"),
+    from: "suporte@teste.com",
+    subject: "🎉 Bem-vindo ao seu E-mail Temporário!",
+    bodyPlain: "Esta é uma mensagem de teste enviada direto do seu servidor no Render!",
+    receivedAt: Date.now()
+  };
+
+  box.messages.push(testMessage);
+  save();
+
+  res.json({ ok: true, message: "E-mail de teste entregue com sucesso!", testMessage });
+});
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Temp Mail running on port ${PORT}; domain=${DOMAIN}`);
