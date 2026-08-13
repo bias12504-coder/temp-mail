@@ -5,7 +5,7 @@ const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DOMAIN = (process.env.MAIL_DOMAIN || "example.com").toLowerCase();
+const DOMAIN = (process.env.MAIL_DOMAIN || "gmail.com").toLowerCase();
 const MAILGUN_SIGNING_KEY = process.env.MAILGUN_SIGNING_KEY || "";
 const TTL_HOURS = Number(process.env.TTL_HOURS || 24);
 const MAX_INBOXES = Number(process.env.MAX_INBOXES || 1000);
