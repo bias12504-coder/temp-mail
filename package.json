@@ -1,0 +1,13 @@
+{
+  "name": "temp-mail-railway",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Temporary inbox website using Railway + Mailgun inbound webhook",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
